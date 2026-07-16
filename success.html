@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>결제 완료 · 오륜미네랄</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+  :root{--navy:#161734;--violet:#6c63ff;--violet-soft:#9d97ff;--lime:#c9f660;--ink:#14152e;
+    --mist:#f4f4f9;--sub:#6f7191;--danger:#e2565f}
+  *{box-sizing:border-box}html,body{margin:0}
+  body{font-family:Pretendard,-apple-system,sans-serif;background:var(--navy);color:#fff;
+    min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{max-width:460px;width:100%;text-align:center}
+  .badge{width:88px;height:88px;border-radius:50%;margin:0 auto 22px;display:grid;place-items:center;
+    font-size:42px;font-weight:900}
+  .ok .badge{background:var(--lime);color:var(--ink)}
+  .ng .badge{background:var(--danger);color:#fff}
+  .spin{width:54px;height:54px;border:5px solid rgba(255,255,255,.18);border-top-color:var(--violet-soft);
+    border-radius:50%;margin:40px auto;animation:sp 1s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  h1{font-size:24px;font-weight:900;letter-spacing:-.03em;margin:0 0 8px}
+  p.sub{color:#a9abd0;font-size:14.5px;margin:0 0 22px;line-height:1.6}
+  .box{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;
+    padding:18px;text-align:left;font-size:14px;line-height:1.9;margin-bottom:12px}
+  .box .row{display:flex;justify-content:space-between;gap:12px}
+  .box .k{color:#9d9fca;font-weight:600}
+  .box .v{font-weight:800;text-align:right}
+  .box .v.hl{color:var(--lime)}
+  .btns{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+  a.btn{display:block;text-decoration:none;border-radius:14px;padding:15px;font-weight:900;font-size:15px}
+  .b-home{background:#fff;color:var(--ink)}
+  .b-kakao{background:#FEE500;color:#191600}
+  .b-ghost{background:transparent;color:#c9cbe8;border:1.5px solid rgba(255,255,255,.2)}
+  .err{color:#ffb4b8;font-size:13px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="spin" id="spin"></div>
+  <h1 id="title">결제를 확인하고 있어요</h1>
+  <p class="sub" id="sub">잠시만 기다려 주세요…</p>
+  <div id="detail"></div>
+  <div class="btns" id="btns"></div>
+</div>
+
+<script>
+const CONFIG = {
+  GAS_URL: 'https://script.google.com/macros/s/여기에_배포URL/exec',   // 주문서와 동일하게
+  KAKAO_URL: 'http://pf.kakao.com/_여기에채널/chat',
+};
+
+const q = new URLSearchParams(location.search);
+const paymentKey = q.get('paymentKey'), orderId = q.get('orderId'), amount = q.get('amount');
+const won = n => Number(n||0).toLocaleString('ko-KR');
+
+function jsonp(params){
+  return new Promise((res,rej)=>{
+    const cb='cf_'+Date.now();
+    const t=setTimeout(()=>{clean();rej(new Error('timeout'));},15000);
+    window[cb]=r=>{clearTimeout(t);res(r);clean();};
+    function clean(){delete window[cb];s.remove();}
+    const ps=new URLSearchParams(Object.assign({callback:cb},params));
+    const s=document.createElement('script');
+    s.src=CONFIG.GAS_URL+'?'+ps.toString();
+    s.onerror=()=>{clearTimeout(t);clean();rej(new Error('network'));};
+    document.body.appendChild(s);
+  });
+}
+
+function render(okState, title, sub, detailHTML, buttons){
+  document.getElementById('spin').style.display='none';
+  document.getElementById('card').className = 'card ' + (okState?'ok':'ng');
+  document.getElementById('title').textContent = title;
+  document.getElementById('sub').innerHTML = sub;
+  document.getElementById('detail').innerHTML = detailHTML || '';
+  document.getElementById('btns').innerHTML = buttons;
+  if(okState){
+    const b=document.createElement('div');
+    b.className='badge'; b.textContent='✓';
+    document.getElementById('card').insertBefore(b, document.getElementById('title'));
+  }else{
+    const b=document.createElement('div');
+    b.className='badge'; b.textContent='!';
+    document.getElementById('card').insertBefore(b, document.getElementById('title'));
+  }
+}
+
+(async()=>{
+  if(!paymentKey||!orderId||!amount){
+    render(false,'잘못된 접근이에요','결제 정보가 확인되지 않습니다.','',
+      `<a class="btn b-kakao" href="${CONFIG.KAKAO_URL}">💬 문의하기</a>`);
+    return;
+  }
+  try{
+    const r=await jsonp({ action:'confirm', paymentKey, orderId, amount });
+    if(r && r.result==='success'){
+      render(true,'결제가 완료되었어요','입력하신 주소로 순차 발송됩니다 🚚',
+        `<div class="box">
+           <div class="row"><span class="k">주문번호</span><span class="v">${orderId}</span></div>
+           <div class="row"><span class="k">결제금액</span><span class="v hl">${won(amount)}원</span></div>
+         </div>`,
+        `<a class="btn b-kakao" href="${CONFIG.KAKAO_URL}">💬 배송 문의하기</a>`);
+    }else{
+      render(false,'결제 승인에 실패했어요',
+        '결제가 완료되지 않았습니다. 카드사 사정 등으로 승인이 거절될 수 있어요.',
+        `<div class="err">${(r&&r.message)||''}</div>`,
+        `<a class="btn b-kakao" href="${CONFIG.KAKAO_URL}">💬 문의하기</a>`);
+    }
+  }catch(e){
+    render(false,'승인 확인 중 오류','네트워크 문제로 확인이 지연되고 있어요. 결제가 되었을 수 있으니 문의해 주세요.','',
+      `<a class="btn b-kakao" href="${CONFIG.KAKAO_URL}">💬 문의하기</a>`);
+  }
+})();
+</script>
+</body>
+</html>

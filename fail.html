@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>결제 실패 · 오륜미네랄</title>
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+  :root{--navy:#161734;--ink:#14152e;--danger:#e2565f;--lime:#c9f660}
+  *{box-sizing:border-box}html,body{margin:0}
+  body{font-family:Pretendard,-apple-system,sans-serif;background:var(--navy);color:#fff;min-height:100vh;
+    display:flex;align-items:center;justify-content:center;padding:24px}
+  .card{max-width:440px;width:100%;text-align:center}
+  .badge{width:84px;height:84px;border-radius:50%;margin:0 auto 22px;display:grid;place-items:center;
+    font-size:40px;font-weight:900;background:var(--danger);color:#fff}
+  h1{font-size:23px;font-weight:900;letter-spacing:-.03em;margin:0 0 8px}
+  p.sub{color:#a9abd0;font-size:14.5px;line-height:1.6;margin:0 0 18px}
+  .err{background:rgba(226,86,95,.12);border:1px solid rgba(226,86,95,.3);border-radius:12px;padding:12px;
+    font-size:12.5px;color:#ffb4b8;margin-bottom:20px;word-break:break-all}
+  .btns{display:flex;flex-direction:column;gap:10px}
+  a.btn,button.btn{display:block;text-decoration:none;border:0;border-radius:14px;padding:15px;font-weight:900;
+    font-size:15px;cursor:pointer;font-family:inherit}
+  .b-home{background:#fff;color:var(--ink)}
+  .b-kakao{background:#FEE500;color:#191600}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="badge">!</div>
+  <h1>결제가 완료되지 않았어요</h1>
+  <p class="sub" id="sub">결제가 취소되었거나 승인이 거절되었습니다.<br/>다시 시도해 주세요.</p>
+  <div class="err" id="err" style="display:none"></div>
+  <div class="btns">
+    <button class="btn b-home" onclick="history.length>1?history.back():location.href='order.html'">← 다시 주문하기</button>
+    <a class="btn b-kakao" id="kk" href="#">💬 문의하기</a>
+  </div>
+</div>
+<script>
+const KAKAO_URL='http://pf.kakao.com/_여기에채널/chat';   // 주문서와 동일하게
+document.getElementById('kk').href=KAKAO_URL;
+const q=new URLSearchParams(location.search);
+const code=q.get('code'), msg=q.get('message');
+if(code==='PAY_PROCESS_CANCELED'){ document.getElementById('sub').innerHTML='결제를 취소하셨어요.<br/>다시 주문하시려면 아래 버튼을 눌러주세요.'; }
+if(msg){ const e=document.getElementById('err'); e.style.display='block'; e.textContent='['+(code||'')+'] '+msg; }
+</script>
+</body>
+</html>
